@@ -95,19 +95,13 @@ test_*.py
 
 ## Install as a ROS 2 Python package
 
-This repository is an `ament_python` package. In the development VM, keep the repository at `~/lynx_ws/fleet_controller` and expose it inside the workspace source tree with a symlink:
-
-```bash
-ln -s ~/lynx_ws/fleet_controller ~/lynx_ws/src/lynx_m20_fleet_controller
-```
-
-If that symlink already exists, do not create it again. Build from the workspace root after sourcing the SDK overlay:
+This repository is an `ament_python` package. Keep the repository at `~/lynx_ws/fleet_controller`. Build it from the workspace root by adding that repository as an additional colcon base path (no copy or symlink is needed):
 
 ```bash
 source /opt/ros/humble/setup.bash
 source ~/lynx_ws/src/sdk_deploy/install/setup.bash
 cd ~/lynx_ws
-colcon build --packages-select m20_fleet_controller
+colcon build --base-paths src fleet_controller --packages-select m20_fleet_controller
 source install/setup.bash
 ```
 
