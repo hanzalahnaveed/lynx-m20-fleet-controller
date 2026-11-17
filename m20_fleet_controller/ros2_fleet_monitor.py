@@ -87,7 +87,7 @@ class FleetMonitor(Node):
 def main(args=None):
     rclpy.init(args=args)
     monitor = FleetMonitor()
-    executor = MultiThreadedExecutor()
+    executor = SingleThreadedExecutor()
     executor.add_node(monitor)
     executor.add_node(monitor.localization_node)
 
