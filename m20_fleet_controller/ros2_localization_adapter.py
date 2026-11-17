@@ -9,8 +9,11 @@ from .fleet_manager import FleetManager
 
 
 class LocalizationAdapter(Node):
-    def __init__(self, fleet, topic_a=None, topic_b=None):
-        super().__init__("m20_fleet_localization_adapter")
+    def __init__(self, fleet, topic_a=None, topic_b=None, use_global_arguments=True):
+        super().__init__(
+            "m20_fleet_localization_adapter",
+            use_global_arguments=use_global_arguments,
+        )
 
         self.fleet = fleet
 
