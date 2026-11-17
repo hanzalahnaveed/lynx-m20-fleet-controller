@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>m20_fleet_controller</name>
+  <version>0.1.0</version>
+  <description>Read-only ROS 2 fleet monitor and dry-run controller previews for two Lynx M20 robots.</description>
+  <maintainer email="maintainer@example.com">Lynx M20 Fleet Controller Maintainer</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>drdds</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf_transformations</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
