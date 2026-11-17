@@ -76,7 +76,6 @@ m20_fleet_controller/
 test_*.py
 ```
 
-
 ## Two-robot mock monitor test
 
 This software-only test publishes two fabricated SDK identities and two fabricated poses. It does not connect to physical robots.
@@ -109,3 +108,22 @@ python3 read_fleet_report.py
 ```
 
 Expected: both slots report fresh status, telemetry, and localization with `monitor_state: observing`; their fabricated poses are different. Both remain `motion_enabled_in_software: false`. These values validate message routing and report aggregation only, not physical readiness.
+
+## Localization-loss mock test
+
+This test verifies that localization loss is distinguished from loss of SDK status. Keep the monitor running with `mock_monitor_params.yaml`. Stop the normal mock publisher with Ctrl+C, then restart it with robot B pose publishing disabled:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws/fleet_controller
+python3 mock_fleet_inputs.py --ros-args -p publish_robot_b_pose:=false
+```
+
+Read the report:
+
+```bash
+python3 read_fleet_report.py
+```
+
+Expected after the pose freshness timeout: robot A remains `observing`; robot B has fresh status and telemetry but `localization_fresh: false`, `pose: null`, and `monitor_state: awaiting_localization`. Both remain `motion_enabled_in_software: false`. This is a fabricated software test only.
