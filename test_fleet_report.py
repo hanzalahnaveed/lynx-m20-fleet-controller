@@ -18,7 +18,7 @@ def main():
         rejected_commands=0,
     )
 
-    # Both records are fabricated; no ROS graph or physical robot is used.
+    # Fabricated records only; no ROS graph or physical robot is used.
     fleet.update_status("robot_a", status, now=50.0)
     fleet.update_pose("robot_a", 1.0, 2.0, 0.25, timestamp=50.0)
     fleet.set_target("robot_a", Target(3.0, 4.0))
@@ -31,14 +31,24 @@ def main():
     assert report["robots"]["robot_b"]["monitor_state"] == "awaiting_status"
     assert report["robots"]["robot_b"]["pose"] is None
 
-    # Reports must be publishable as a JSON std_msgs/String payload.
     encoded = json.dumps(report, sort_keys=True)
     decoded = json.loads(encoded)
     assert decoded["robots"]["robot_a"]["pose"]["x"] == 1.0
 
-    # A status message older than the fleet timeout is not considered fresh.
     stale = build_fleet_report(fleet, now=51.0)
     assert stale["robots"]["robot_a"]["monitor_state"] == "status_stale"
+
+    stale_telemetry = SimpleNamespace(
+        telemetry_fresh=False,
+        command_timed_out=True,
+        current_state="RLControlMode",
+        safety_mode=0,
+        rejected_commands=0,
+    )
+    fleet.update_status("robot_a", stale_telemetry, now=52.0)
+    telemetry_report = build_fleet_report(fleet, now=52.1)
+    assert telemetry_report["robots"]["robot_a"]["status_fresh"] is True
+    assert telemetry_report["robots"]["robot_a"]["monitor_state"] == "telemetry_stale"
 
     print("FLEET REPORT TEST PASSED")
 
