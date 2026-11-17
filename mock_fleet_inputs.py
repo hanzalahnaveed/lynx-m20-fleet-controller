@@ -1,6 +1,6 @@
-"""Publish fabricated ROS 2 status and pose inputs for monitor testing.
+"""Publish fabricated status and pose inputs for two-slot monitor testing.
 
-This script publishes only /rl_deploy/status and /robot_a/pose.
+Publishes only /rl_deploy/status, /robot_a/pose, and /robot_b/pose.
 It does not publish velocity, state, or hardware joint commands.
 """
 
@@ -16,25 +16,24 @@ class MockFleetInputs(Node):
         self.status_pub = self.create_publisher(
             RobotStatus, "/rl_deploy/status", 10
         )
-        self.pose_pub = self.create_publisher(
+        self.pose_a_pub = self.create_publisher(
             PoseStamped, "/robot_a/pose", 10
+        )
+        self.pose_b_pub = self.create_publisher(
+            PoseStamped, "/robot_b/pose", 10
         )
         self.timer = self.create_timer(0.1, self.publish_inputs)
         self.get_logger().warning(
-            "Publishing FABRICATED test data only: "
-            "/rl_deploy/status and /robot_a/pose. "
+            "Publishing FABRICATED two-robot test data only: "
+            "/rl_deploy/status, /robot_a/pose, and /robot_b/pose. "
             "No robot command topics are used."
         )
 
-    def publish_inputs(self):
-        now = self.get_clock().now()
-        stamp = now.to_msg()
-        seconds = now.nanoseconds / 1_000_000_000.0
-
+    def make_status(self, identity, stamp, seconds):
         status = RobotStatus()
         status.header.stamp = stamp
         status.header.frame_id = "mock_sdk"
-        status.robot = "MOCK_M20_A"
+        status.robot = identity
         status.command_source = "mock_test"
         status.current_state = "RLControlMode"
         status.current_state_id = 0
@@ -59,19 +58,36 @@ class MockFleetInputs(Node):
         status.base_angular_velocity.x = 0.0
         status.base_angular_velocity.y = 0.0
         status.base_angular_velocity.z = 0.0
-        self.status_pub.publish(status)
+        return status
 
+    @staticmethod
+    def make_pose(stamp, x, y):
         pose = PoseStamped()
         pose.header.stamp = stamp
         pose.header.frame_id = "map"
-        pose.pose.position.x = 0.0
-        pose.pose.position.y = 0.0
+        pose.pose.position.x = x
+        pose.pose.position.y = y
         pose.pose.position.z = 0.0
         pose.pose.orientation.x = 0.0
         pose.pose.orientation.y = 0.0
         pose.pose.orientation.z = 0.0
         pose.pose.orientation.w = 1.0
-        self.pose_pub.publish(pose)
+        return pose
+
+    def publish_inputs(self):
+        now = self.get_clock().now()
+        stamp = now.to_msg()
+        seconds = now.nanoseconds / 1_000_000_000.0
+
+        self.status_pub.publish(
+            self.make_status("MOCK_M20_A", stamp, seconds)
+        )
+        self.status_pub.publish(
+            self.make_status("MOCK_M20_B", stamp, seconds)
+        )
+
+        self.pose_a_pub.publish(self.make_pose(stamp, 1.0, 2.0))
+        self.pose_b_pub.publish(self.make_pose(stamp, 4.0, 5.0))
 
 
 def main():
