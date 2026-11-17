@@ -75,3 +75,37 @@ m20_fleet_controller/
   safety_gate.py
 test_*.py
 ```
+
+
+## Two-robot mock monitor test
+
+This software-only test publishes two fabricated SDK identities and two fabricated poses. It does not connect to physical robots.
+
+Pull the latest repository changes, then start the monitor in Terminal 1:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws/fleet_controller
+PYTHONPATH="$PWD:$PYTHONPATH" python3 -m m20_fleet_controller.ros2_fleet_monitor --ros-args --params-file mock_monitor_params.yaml
+```
+
+Start the fabricated input publisher in Terminal 2:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws/fleet_controller
+python3 mock_fleet_inputs.py
+```
+
+Read one complete report in Terminal 3:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws/fleet_controller
+python3 read_fleet_report.py
+```
+
+Expected: both slots report fresh status, telemetry, and localization with `monitor_state: observing`; their fabricated poses are different. Both remain `motion_enabled_in_software: false`. These values validate message routing and report aggregation only, not physical readiness.
