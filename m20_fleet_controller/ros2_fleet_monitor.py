@@ -2,6 +2,9 @@
 
 import json
 
+from ament_index_python.packages import get_package_share_directory
+from .dashboard_server import DashboardServer
+
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
@@ -31,6 +34,8 @@ class FleetMonitor(Node):
         self.declare_parameter("robot_a_target_y", 2.0)
         self.declare_parameter("robot_b_target_x", 4.0)
         self.declare_parameter("robot_b_target_y", 6.0)
+        self.declare_parameter("dashboard_host", "127.0.0.1")
+        self.declare_parameter("dashboard_port", 8765)
 
         raw_map = self.get_parameter("robot_name_map").value
         try:
@@ -82,6 +87,16 @@ class FleetMonitor(Node):
         )
         self.report_publisher = self.create_publisher(String, "~/fleet_status", 10)
         self.timer = self.create_timer(0.1, self.publish_report)
+        self.dashboard = DashboardServer(
+            report_provider=lambda: build_fleet_report(self.fleet),
+            host=str(self.get_parameter("dashboard_host").value),
+            port=int(self.get_parameter("dashboard_port").value),
+            web_dir=get_package_share_directory("m20_fleet_controller") + "/web",
+        )
+        self.dashboard.start()
+        self.get_logger().info(
+            f"Fleet dashboard available at http://{self.dashboard.display_host}:{self.dashboard.port}"
+        )
 
         self.get_logger().warning(
             "READ-ONLY monitor active: controller previews are local calculations; "
@@ -119,6 +134,7 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
+        monitor.dashboard.stop()
         executor.remove_node(monitor.localization_node)
         monitor.localization_node.destroy_node()
         executor.remove_node(monitor)
