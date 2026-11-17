@@ -71,7 +71,10 @@ class FleetMonitor(Node):
         topic_a = self.get_parameter("robot_a_pose_topic").value
         topic_b = self.get_parameter("robot_b_pose_topic").value
         self.localization_node = LocalizationAdapter(
-            self.fleet, topic_a=topic_a, topic_b=topic_b
+            self.fleet,
+            topic_a=topic_a,
+            topic_b=topic_b,
+            use_global_arguments=False,
         )
 
         self.status_subscription = self.create_subscription(
@@ -120,7 +123,8 @@ def main(args=None):
         monitor.localization_node.destroy_node()
         executor.remove_node(monitor)
         monitor.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
