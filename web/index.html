@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lynx M20 Fleet</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1018;--panel:#121b28;--line:#263548;--muted:#91a1b5;--text:#edf3fa;--green:#55d6a0;--amber:#f2bd62;--red:#ff7777;--blue:#7db7ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% 0%,#17283b 0,transparent 45%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
+main{max-width:1180px;margin:auto;padding:34px 24px 56px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:28px}.eyebrow{color:var(--blue);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}h1{font-size:clamp(28px,4vw,42px);line-height:1.1;margin:8px 0}.sub{color:var(--muted);margin:0}.readonly{border:1px solid #6b512b;color:var(--amber);background:#2b2114;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}.tile,.robot{background:linear-gradient(145deg,#162232,#101824);border:1px solid var(--line);border-radius:16px}.tile{padding:16px 18px}.tile span{display:block;color:var(--muted);font-size:12px}.tile strong{display:block;font-size:23px;margin-top:3px}
+.robots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.robot{padding:20px}.robot-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.robot h2{font-size:20px;margin:0}.state{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:#253449;color:var(--muted)}.state.good{background:#12372c;color:var(--green)}.state.warn{background:#3a2d18;color:var(--amber)}.state.bad{background:#3b2025;color:var(--red)}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.metric{border-top:1px solid var(--line);padding-top:10px;min-width:0}.metric label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:14px;font-weight:650;margin-top:3px;overflow-wrap:anywhere}.metric small{color:var(--muted)}.vector{font-variant-numeric:tabular-nums}
+.footer{display:flex;justify-content:space-between;gap:14px;color:var(--muted);font-size:12px;margin-top:18px}.notice{border:1px solid var(--line);border-radius:12px;padding:13px 16px;color:var(--muted);margin-top:18px;font-size:13px}.error{color:var(--red)}
+@media(max-width:720px){main{padding:24px 14px}.top{display:block}.readonly{display:inline-block;margin-top:16px}.summary{grid-template-columns:1fr}.robots{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<header class="top"><div><div class="eyebrow">DEEP Robotics · M20 Pro</div><h1>Fleet overview</h1><p class="sub">Two-slot host monitor · live diagnostics and dry-run previews</p></div><div class="readonly">READ-ONLY · NO MOTION COMMANDS</div></header>
+<section class="summary">
+<div class="tile"><span>Robot slots reporting</span><strong id="reporting">0 / 2</strong></div>
+<div class="tile"><span>Fresh telemetry</span><strong id="telemetry">0 / 2</strong></div>
+<div class="tile"><span>Software motion gates enabled</span><strong id="enabled">0 / 2</strong></div>
+</section>
+<section class="robots" id="robots"></section>
+<div class="notice">Preview velocities are calculated locally and are never published to the robot. “Observing” is a monitoring state, not a physical safety certification. A zero preview is not an emergency stop.</div>
+<div class="footer"><span id="connection">Connecting to local monitor…</span><span id="updated">Waiting for first report</span></div>
+</main>
+<script>
+const slots=["robot_a","robot_b"];
+const fmt=(v,n=2)=>v===null||v===undefined?"—":Number(v).toFixed(n);
+const esc=s=>String(s??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function card(id,r){
+ const state=r.monitor_state||"unknown";
+ const cls=state==="observing"?"good":(["awaiting_status","status_stale","telemetry_stale","safety_mode_active"].includes(state)?"warn":"bad");
+ const p=r.pose,t=r.target,v=r.preview_velocity||{};
+ const kv=(label,value,extra="")=>'<div class="metric"><label>'+label+'</label><b>'+value+'</b>'+extra+'</div>';
+ return '<article class="robot"><div class="robot-head"><h2>'+id.replace("_"," ").toUpperCase()+'</h2><span class="state '+cls+'">'+esc(state.replaceAll("_"," "))+'</span></div><div class="metrics">'+
+ kv("SDK status",r.status_fresh?"Fresh":(r.status_received?"Stale":"Not received"))+
+ kv("Telemetry",r.telemetry_fresh?"Fresh":"Stale / unavailable")+
+ kv("Localization",r.localization_fresh?"Fresh":"Unavailable")+
+ kv("Current state",esc(r.current_state))+
+ kv("Safety mode",esc(r.safety_mode))+
+ kv("Software motion gate",r.motion_enabled_in_software?"Enabled":"Disabled")+
+ kv("Pose · metres",p?fmt(p.x)+", "+fmt(p.y):"—",p?'<small>yaw '+fmt(p.yaw)+' rad</small>':'')+
+ kv("Target · metres",t?fmt(t.x)+", "+fmt(t.y):"—")+
+ kv("Preview · m/s",fmt(v.forward)+", "+fmt(v.sideways),'<small>forward · sideways</small>')+
+ kv("Preview yaw · rad/s",fmt(v.yaw_rate))+
+ kv("Rejected commands",esc(r.rejected_commands))+
+ '</div></article>';
+}
+async function refresh(){
+ try{
+  const res=await fetch("/api/status",{cache:"no-store"});
+  if(!res.ok)throw new Error("HTTP "+res.status);
+  const data=await res.json(),robots=data.robots||{};
+  document.getElementById("robots").innerHTML=slots.map(id=>card(id,robots[id]||{})).join("");
+  document.getElementById("reporting").textContent=slots.filter(id=>robots[id]?.status_fresh).length+" / 2";
+  document.getElementById("telemetry").textContent=slots.filter(id=>robots[id]?.telemetry_fresh).length+" / 2";
+  document.getElementById("enabled").textContent=slots.filter(id=>robots[id]?.motion_enabled_in_software).length+" / 2";
+  document.getElementById("connection").textContent="Connected to ROS 2 monitor";
+  document.getElementById("connection").className="";
+  document.getElementById("updated").textContent="Updated "+new Date().toLocaleTimeString();
+ }catch(e){document.getElementById("connection").textContent="Monitor unavailable: "+e.message;document.getElementById("connection").className="error"}
+}
+refresh();setInterval(refresh,1000);
+</script></body></html>
