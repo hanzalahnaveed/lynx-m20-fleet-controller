@@ -1,4 +1,4 @@
-"""Read-only ROS 2 monitor combining SDK status and localization."""
+"""Read-only ROS 2 monitor with local position-controller previews."""
 
 import json
 
@@ -8,15 +8,16 @@ from rclpy.node import Node
 from drdds.msg import RobotStatus
 from std_msgs.msg import String
 
+from .controller_core import Target
 from .fleet_manager import FleetManager
 from .fleet_report import build_fleet_report
 from .ros2_localization_adapter import LocalizationAdapter
 
 
 class FleetMonitor(Node):
-    """Collect status and poses in one shared FleetManager instance.
+    """Collect status/poses and publish diagnostics plus dry-run previews.
 
-    Publishes only a diagnostic std_msgs/String report. It has no velocity
+    Preview values are calculated locally. This node has no velocity
     publisher and never sends commands to the robot SDK.
     """
 
@@ -26,6 +27,10 @@ class FleetMonitor(Node):
         self.declare_parameter("robot_name_map", "{}")
         self.declare_parameter("robot_a_pose_topic", "/robot_a/pose")
         self.declare_parameter("robot_b_pose_topic", "/robot_b/pose")
+        self.declare_parameter("robot_a_target_x", 2.0)
+        self.declare_parameter("robot_a_target_y", 2.0)
+        self.declare_parameter("robot_b_target_x", 4.0)
+        self.declare_parameter("robot_b_target_y", 6.0)
 
         raw_map = self.get_parameter("robot_name_map").value
         try:
@@ -48,6 +53,21 @@ class FleetMonitor(Node):
             raise ValueError("robot_name_map cannot map multiple names to one slot")
 
         self.fleet = FleetManager()
+        self.fleet.set_target(
+            "robot_a",
+            Target(
+                float(self.get_parameter("robot_a_target_x").value),
+                float(self.get_parameter("robot_a_target_y").value),
+            ),
+        )
+        self.fleet.set_target(
+            "robot_b",
+            Target(
+                float(self.get_parameter("robot_b_target_x").value),
+                float(self.get_parameter("robot_b_target_y").value),
+            ),
+        )
+
         topic_a = self.get_parameter("robot_a_pose_topic").value
         topic_b = self.get_parameter("robot_b_pose_topic").value
         self.localization_node = LocalizationAdapter(
@@ -61,8 +81,8 @@ class FleetMonitor(Node):
         self.timer = self.create_timer(0.1, self.publish_report)
 
         self.get_logger().warning(
-            "READ-ONLY monitor active: publishes diagnostics only; "
-            "no robot velocity or hardware-command publisher exists."
+            "READ-ONLY monitor active: controller previews are local calculations; "
+            "no velocity, state, or hardware-command publisher exists."
         )
         if not self.robot_name_map:
             self.get_logger().warning(
