@@ -23,6 +23,7 @@ def main():
     assert fleet.safety.states["robot_a"].motion_enabled
 
     # Missing/stale localization must both zero output and disable the gate.
+    fleet.update_status("robot_a", make_status(), now=11.0)
     command = fleet.calculate("robot_a", now=11.0)
     assert (command.forward, command.sideways, command.yaw_rate) == (0.0, 0.0, 0.0)
     assert not fleet.safety.states["robot_a"].motion_enabled
