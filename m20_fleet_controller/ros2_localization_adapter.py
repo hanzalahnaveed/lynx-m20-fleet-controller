@@ -9,7 +9,7 @@ from .fleet_manager import FleetManager
 
 
 class LocalizationAdapter(Node):
-    def __init__(self, fleet):
+    def __init__(self, fleet, topic_a=None, topic_b=None):
         super().__init__("m20_fleet_localization_adapter")
 
         self.fleet = fleet
@@ -17,8 +17,10 @@ class LocalizationAdapter(Node):
         self.declare_parameter("robot_a_pose_topic", "/robot_a/pose")
         self.declare_parameter("robot_b_pose_topic", "/robot_b/pose")
 
-        topic_a = self.get_parameter("robot_a_pose_topic").value
-        topic_b = self.get_parameter("robot_b_pose_topic").value
+        if topic_a is None:
+            topic_a = self.get_parameter("robot_a_pose_topic").value
+        if topic_b is None:
+            topic_b = self.get_parameter("robot_b_pose_topic").value
 
         self.sub_a = self.create_subscription(
             PoseStamped,
