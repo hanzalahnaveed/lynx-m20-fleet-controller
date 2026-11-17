@@ -1,0 +1,10 @@
+/m20_fleet_monitor:
+  ros__parameters:
+    # Empty by design: no incoming SDK identity is trusted until verified.
+    robot_name_map: '{}'
+    robot_a_pose_topic: /robot_a/pose
+    robot_b_pose_topic: /robot_b/pose
+    robot_a_target_x: 2.0
+    robot_a_target_y: 2.0
+    robot_b_target_x: 4.0
+    robot_b_target_y: 6.0
