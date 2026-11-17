@@ -53,6 +53,7 @@ stale_command = fleet.calculate("robot_a", now=101.0)
 assert stale_command.forward == 0.0
 assert stale_command.sideways == 0.0
 assert stale_command.yaw_rate == 0.0
+assert not fleet.safety.states["robot_a"].motion_enabled
 print("robot_a stale localization:", to_twist_fields(stale_command))
 
 # Disabling Robot B must produce a zero Twist.
