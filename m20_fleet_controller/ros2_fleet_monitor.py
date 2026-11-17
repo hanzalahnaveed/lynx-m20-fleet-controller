@@ -1,20 +1,23 @@
-"""Single-process, read-only fleet monitor for two logical M20 robot slots."""
+"""Read-only ROS 2 monitor combining SDK status and localization."""
 
 import json
 
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from drdds.msg import RobotStatus
-from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import String
 
 from .fleet_manager import FleetManager
+from .fleet_report import build_fleet_report
 from .ros2_localization_adapter import LocalizationAdapter
 
 
 class FleetMonitor(Node):
-    """Consumes robot status and poses, then reports readiness at 10 Hz.
+    """Collect status and poses in one shared FleetManager instance.
 
-    This node deliberately creates no velocity or hardware-command publisher.
+    Publishes only a diagnostic std_msgs/String report. It has no velocity
+    publisher and never sends commands to the robot SDK.
     """
 
     def __init__(self):
@@ -25,102 +28,76 @@ class FleetMonitor(Node):
         self.declare_parameter("robot_b_pose_topic", "/robot_b/pose")
 
         raw_map = self.get_parameter("robot_name_map").value
-        self.robot_name_map = json.loads(raw_map)
+        try:
+            self.robot_name_map = json.loads(raw_map)
+        except json.JSONDecodeError as exc:
+            raise ValueError("robot_name_map must contain valid JSON") from exc
+
         if not isinstance(self.robot_name_map, dict):
             raise ValueError("robot_name_map must be a JSON object")
 
-        unknown_slots = set(self.robot_name_map.values()) - {"robot_a", "robot_b"}
-        if unknown_slots:
+        invalid_slots = set(self.robot_name_map.values()) - {"robot_a", "robot_b"}
+        if invalid_slots:
             raise ValueError(
                 "robot_name_map values must be robot_a or robot_b; "
-                f"got {sorted(unknown_slots)}"
+                f"invalid values: {sorted(invalid_slots)}"
             )
+        if len(set(self.robot_name_map.values())) != len(self.robot_name_map):
+            raise ValueError("robot_name_map cannot map multiple names to one slot")
 
         self.fleet = FleetManager()
-
-        # Share this exact FleetManager with the localization subscriptions.
-        self.localization_node = LocalizationAdapter(self.fleet)
+        topic_a = self.get_parameter("robot_a_pose_topic").value
+        topic_b = self.get_parameter("robot_b_pose_topic").value
+        self.localization_node = LocalizationAdapter(
+            self.fleet, topic_a=topic_a, topic_b=topic_b
+        )
 
         self.status_subscription = self.create_subscription(
-            RobotStatus,
-            "/rl_deploy/status",
-            self.status_callback,
-            10,
+            RobotStatus, "/rl_deploy/status", self.status_callback, 10
         )
-        self.report_publisher = self.create_publisher(
-            # A human-readable diagnostic report, not a robot command.
-            __import__("std_msgs.msg", fromlist=["String"]).String,
-            "~/fleet_status",
-            10,
-        )
+        self.report_publisher = self.create_publisher(String, "~/fleet_status", 10)
         self.timer = self.create_timer(0.1, self.publish_report)
 
         self.get_logger().warning(
-            "READ-ONLY monitor started. No velocity or hardware command "
-            "publisher is created. Robot identity mapping must be verified "
-            "before interpreting two-robot status."
+            "READ-ONLY monitor active: publishes diagnostics only; "
+            "no robot velocity or hardware-command publisher exists."
         )
+        if not self.robot_name_map:
+            self.get_logger().warning(
+                "robot_name_map is empty; all SDK status messages will be ignored."
+            )
 
     def status_callback(self, msg):
         robot_id = self.robot_name_map.get(msg.robot)
         if robot_id is None:
             self.get_logger().warning(
-                f"Ignoring status with unmapped robot identity: {msg.robot!r}"
+                f"Ignoring unmapped SDK robot identity: {msg.robot!r}"
             )
             return
-
         self.fleet.update_status(robot_id, msg)
 
     def publish_report(self):
-        from std_msgs.msg import String
-
-        report = {}
-        for robot_id in ("robot_a", "robot_b"):
-            snapshot = self.fleet.snapshot(robot_id)
-            pose = snapshot["pose"]
-            target = snapshot["target"]
-
-            report[robot_id] = {
-                "connected": snapshot["connected"],
-                "status_fresh": snapshot["status_fresh"],
-                "telemetry_fresh": snapshot["telemetry_fresh"],
-                "localization_fresh": pose is not None,
-                "motion_enabled_in_software": snapshot["motion_enabled"],
-                "current_state": snapshot["current_state"],
-                "safety_mode": snapshot["safety_mode"],
-                "command_timed_out": snapshot["command_timed_out"],
-                "rejected_commands": snapshot["rejected_commands"],
-                "pose": (
-                    {"x": pose.x, "y": pose.y, "yaw": pose.yaw}
-                    if pose is not None else None
-                ),
-                "target": (
-                    {"x": target.x, "y": target.y}
-                    if target is not None else None
-                ),
-            }
-
         message = String()
-        message.data = json.dumps(report, sort_keys=True)
+        message.data = json.dumps(build_fleet_report(self.fleet), sort_keys=True)
         self.report_publisher.publish(message)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = FleetMonitor()
-    executor = rclpy.executors.MultiThreadedExecutor()
-    executor.add_node(node)
-    executor.add_node(node.localization_node)
+    monitor = FleetMonitor()
+    executor = MultiThreadedExecutor()
+    executor.add_node(monitor)
+    executor.add_node(monitor.localization_node)
 
     try:
         executor.spin()
     except KeyboardInterrupt:
         pass
     finally:
-        executor.remove_node(node.localization_node)
-        node.localization_node.destroy_node()
-        executor.remove_node(node)
-        node.destroy_node()
+        executor.remove_node(monitor.localization_node)
+        monitor.localization_node.destroy_node()
+        executor.remove_node(monitor)
+        monitor.destroy_node()
         rclpy.shutdown()
 
 
