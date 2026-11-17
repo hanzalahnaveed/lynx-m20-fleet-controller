@@ -1,14 +1,27 @@
 """Pure-Python diagnostic report builder for the two-robot fleet."""
 
+import time
+
 
 def _robot_report(fleet, robot_id, now=None):
+    if now is None:
+        now = time.monotonic()
+
     snapshot = fleet.snapshot(robot_id, now=now)
+    slot = fleet.robots[robot_id]
     pose = snapshot["pose"]
     target = snapshot["target"]
+    status_age = now - slot.last_status_time
+    status_message_fresh = (
+        slot.status_received
+        and 0 <= status_age <= fleet.status_timeout
+    )
 
-    if not snapshot["status_fresh"]:
-        monitor_state = "awaiting_status" if not snapshot["connected"] else "status_stale"
-    elif not snapshot["telemetry_fresh"]:
+    if not slot.status_received:
+        monitor_state = "awaiting_status"
+    elif not status_message_fresh:
+        monitor_state = "status_stale"
+    elif not slot.telemetry_fresh:
         monitor_state = "telemetry_stale"
     elif pose is None:
         monitor_state = "awaiting_localization"
@@ -20,7 +33,8 @@ def _robot_report(fleet, robot_id, now=None):
     return {
         "monitor_state": monitor_state,
         "connected": snapshot["connected"],
-        "status_fresh": snapshot["status_fresh"],
+        "status_received": slot.status_received,
+        "status_fresh": status_message_fresh,
         "telemetry_fresh": snapshot["telemetry_fresh"],
         "localization_fresh": pose is not None,
         "motion_enabled_in_software": snapshot["motion_enabled"],
@@ -40,10 +54,10 @@ def _robot_report(fleet, robot_id, now=None):
 
 
 def build_fleet_report(fleet, now=None):
-    """Return JSON-serializable diagnostic state; never a movement command.
+    """Return JSON-serializable diagnostics; never a movement command.
 
-    "observing" means only that recent status, telemetry, and localization
-    are present and SDK safety_mode is zero. It is not a motion-safety claim.
+    "observing" means recent status, telemetry, and localization are present
+    and SDK safety_mode is zero. It is not a motion-safety claim.
     """
     return {
         "read_only": True,
