@@ -58,7 +58,7 @@ class FleetManager:
         robot.rejected_commands = int(status.rejected_commands)
         robot.last_status_time = now
 
-        if not robot.telemetry_fresh:
+        if not robot.telemetry_fresh or robot.safety_mode != 0:
             self.disable_motion(robot_id)
 
     def status_is_fresh(self, robot_id, now=None):
