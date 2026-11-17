@@ -152,15 +152,20 @@ class FleetManager:
         pose = self.localization.get_pose(robot_id, now)
 
         if not self.status_is_fresh(robot_id, now):
-            self.safety.disable_motion(robot_id)
-            robot.last_command = VelocityCommand()
+            self.disable_motion(robot_id)
             return robot.last_command
 
-        if (
-            not self.safety.allow_command(robot_id, pose is not None)
-            or robot.target is None
-            or robot.safety_mode != 0
-        ):
+        # Fail closed: stale/missing localization or an SDK safety mode
+        # disables the software gate, not merely the calculated velocity.
+        if pose is None or robot.safety_mode != 0:
+            self.disable_motion(robot_id)
+            return robot.last_command
+
+        if not self.safety.allow_command(robot_id, pose_is_fresh=True):
+            self.disable_motion(robot_id)
+            return robot.last_command
+
+        if robot.target is None:
             robot.last_command = VelocityCommand()
             return robot.last_command
 
