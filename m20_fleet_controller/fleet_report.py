@@ -11,6 +11,7 @@ def _robot_report(fleet, robot_id, now=None):
     slot = fleet.robots[robot_id]
     pose = snapshot["pose"]
     target = snapshot["target"]
+    preview = fleet.preview_calculate(robot_id, now=now)
     status_age = now - slot.last_status_time
     status_message_fresh = (
         slot.status_received
@@ -50,14 +51,20 @@ def _robot_report(fleet, robot_id, now=None):
             {"x": target.x, "y": target.y}
             if target is not None else None
         ),
+        "preview_velocity": {
+            "forward": preview.forward,
+            "sideways": preview.sideways,
+            "yaw_rate": preview.yaw_rate,
+        },
+        "preview_only": True,
     }
 
 
 def build_fleet_report(fleet, now=None):
-    """Return JSON-serializable diagnostics; never a movement command.
+    """Return JSON-serializable diagnostics and dry-run calculations.
 
-    "observing" means recent status, telemetry, and localization are present
-    and SDK safety_mode is zero. It is not a motion-safety claim.
+    Preview velocity is calculated locally and is never published. "observing"
+    is not a motion-safety claim.
     """
     return {
         "read_only": True,
