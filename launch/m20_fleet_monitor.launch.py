@@ -13,6 +13,14 @@ def generate_launch_description():
     ])
     return LaunchDescription([
         DeclareLaunchArgument(
+            "dashboard_host", default_value="127.0.0.1",
+            description="Dashboard bind address; keep loopback unless using a trusted network",
+        ),
+        DeclareLaunchArgument(
+            "dashboard_port", default_value="8765",
+            description="Local browser dashboard HTTP port",
+        ),
+        DeclareLaunchArgument(
             "params_file",
             default_value=default_params,
             description="ROS 2 parameter YAML for the read-only fleet monitor",
@@ -22,6 +30,9 @@ def generate_launch_description():
             executable="m20_fleet_monitor",
             name="m20_fleet_monitor",
             output="screen",
-            parameters=[LaunchConfiguration("params_file")],
+            parameters=[LaunchConfiguration("params_file"), {
+                "dashboard_host": LaunchConfiguration("dashboard_host"),
+                "dashboard_port": LaunchConfiguration("dashboard_port"),
+            }],
         ),
     ])
