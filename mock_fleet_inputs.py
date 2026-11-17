@@ -2,6 +2,9 @@
 
 Publishes only /rl_deploy/status, /robot_a/pose, and /robot_b/pose.
 It does not publish velocity, state, or hardware joint commands.
+
+Set publish_robot_b_pose:=false to simulate loss of robot B localization
+while both fabricated SDK status streams and robot A localization continue.
 """
 
 import rclpy
@@ -13,6 +16,10 @@ from geometry_msgs.msg import PoseStamped
 class MockFleetInputs(Node):
     def __init__(self):
         super().__init__("mock_fleet_inputs")
+        self.declare_parameter("publish_robot_b_pose", True)
+        self.publish_robot_b_pose = (
+            self.get_parameter("publish_robot_b_pose").value
+        )
         self.status_pub = self.create_publisher(
             RobotStatus, "/rl_deploy/status", 10
         )
@@ -24,9 +31,10 @@ class MockFleetInputs(Node):
         )
         self.timer = self.create_timer(0.1, self.publish_inputs)
         self.get_logger().warning(
-            "Publishing FABRICATED two-robot test data only: "
-            "/rl_deploy/status, /robot_a/pose, and /robot_b/pose. "
-            "No robot command topics are used."
+            "Publishing FABRICATED two-robot status data and robot A pose. "
+            f"Robot B pose publishing is {self.publish_robot_b_pose}. "
+            "Only /rl_deploy/status, /robot_a/pose, and optionally "
+            "/robot_b/pose are used; no robot command topics are used."
         )
 
     def make_status(self, identity, stamp, seconds):
@@ -87,7 +95,8 @@ class MockFleetInputs(Node):
         )
 
         self.pose_a_pub.publish(self.make_pose(stamp, 1.0, 2.0))
-        self.pose_b_pub.publish(self.make_pose(stamp, 4.0, 5.0))
+        if self.publish_robot_b_pose:
+            self.pose_b_pub.publish(self.make_pose(stamp, 4.0, 5.0))
 
 
 def main():
