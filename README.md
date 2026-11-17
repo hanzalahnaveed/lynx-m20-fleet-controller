@@ -31,6 +31,14 @@ ros2 pkg list | grep '^m20_fleet_controller$'
 ros2 pkg executables m20_fleet_controller
 ```
 
+## Fleet dashboard
+
+The monitor serves a browser dashboard from the same read-only process. It polls the local HTTP endpoint for the latest JSON fleet report; it has no motion controls and cannot command either robot.
+
+After building and launching the monitor, open `http://127.0.0.1:8765` in a browser on the Ubuntu VM. The default bind address is loopback-only. To expose the dashboard on the VM network, set `dashboard_host` to `0.0.0.0` in a trusted network and configure the VM firewall accordingly. Do not expose it to the public internet.
+
+The dashboard shows each robot slot, status/telemetry/localization freshness, current state, safety mode, pose, target, and locally calculated preview velocity. It displays `awaiting_status` until a verified identity map is configured.
+
 ## Run the read-only monitor
 
 The installed default parameter file deliberately has an empty `robot_name_map`. That prevents unverified SDK identities from being assigned to either robot slot.
