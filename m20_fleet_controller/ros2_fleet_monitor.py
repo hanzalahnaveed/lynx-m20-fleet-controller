@@ -3,7 +3,7 @@
 import json
 
 import rclpy
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from drdds.msg import RobotStatus
 from std_msgs.msg import String
@@ -35,6 +35,8 @@ class FleetMonitor(Node):
 
         if not isinstance(self.robot_name_map, dict):
             raise ValueError("robot_name_map must be a JSON object")
+        if not all(isinstance(k, str) and isinstance(v, str) for k, v in self.robot_name_map.items()):
+            raise ValueError("robot_name_map keys and values must be strings")
 
         invalid_slots = set(self.robot_name_map.values()) - {"robot_a", "robot_b"}
         if invalid_slots:
