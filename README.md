@@ -92,6 +92,96 @@ m20_fleet_controller/
 test_*.py
 ```
 
+
+## Install as a ROS 2 Python package
+
+This repository is an `ament_python` package. In the development VM, keep the repository at `~/lynx_ws/fleet_controller` and expose it inside the workspace source tree with a symlink:
+
+```bash
+ln -s ~/lynx_ws/fleet_controller ~/lynx_ws/src/lynx_m20_fleet_controller
+```
+
+If that symlink already exists, do not create it again. Build from the workspace root after sourcing the SDK overlay:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws
+colcon build --packages-select m20_fleet_controller
+source install/setup.bash
+```
+
+Verify the package and executable:
+
+```bash
+ros2 pkg list | grep '^m20_fleet_controller
+
+This software-only test publishes two fabricated SDK identities and two fabricated poses. It does not connect to physical robots.
+
+Pull the latest repository changes, then start the monitor in Terminal 1:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws/fleet_controller
+PYTHONPATH="$PWD:$PYTHONPATH" python3 -m m20_fleet_controller.ros2_fleet_monitor --ros-args --params-file mock_monitor_params.yaml
+```
+
+Start the fabricated input publisher in Terminal 2:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws/fleet_controller
+python3 mock_fleet_inputs.py
+```
+
+Read one complete report in Terminal 3:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/lynx_ws/src/sdk_deploy/install/setup.bash
+cd ~/lynx_ws/fleet_controller
+python3 read_fleet_report.py
+```
+
+Expected: both slots report fresh status, telemetry, and localization with `monitor_state: observing`; their fabricated poses are different. Both remain `motion_enabled_in_software: false`.
+
+## Localization-loss mock test
+
+Keep the monitor running. Stop the normal mock publisher with Ctrl+C, then restart it with robot B pose publishing disabled:
+
+```bash
+python3 mock_fleet_inputs.py --ros-args -p publish_robot_b_pose:=false
+```
+
+Expected after the pose freshness timeout: Robot A remains `observing`; Robot B has fresh status and telemetry but `localization_fresh: false`, `pose: null`, and `monitor_state: awaiting_localization`. Both remain `motion_enabled_in_software: false`.
+
+## Controller preview test
+
+The monitor assigns configurable targets and reports candidate velocities calculated independently for each robot. These values are dry-run previews only; the safety gate remains disabled and no command publisher exists.
+
+With the mock monitor and mock input publisher running, read the report. Expected default targets and previews:
+
+- Robot A pose (1, 2), target (2, 2): forward preview 0.2 m/s, sideways 0.0 m/s, yaw rate 0.0 rad/s.
+- Robot B pose (4, 5), target (4, 6): forward preview 0.15 m/s, sideways preview 0.15 m/s, yaw rate 0.3 rad/s.
+
+If localization becomes stale, that robot's preview returns zero. Both robots must continue to report `motion_enabled_in_software: false`.
+
+For a deterministic unit test, run `python3 test_controller_preview.py`. It uses fabricated inputs and does not start ROS or communicate with hardware.
+
+ros2 pkg executables m20_fleet_controller
+```
+
+Run the read-only monitor using the installed console entry point:
+
+```bash
+ros2 run m20_fleet_controller m20_fleet_monitor --ros-args \\
+  --params-file ~/lynx_ws/fleet_controller/mock_monitor_params.yaml
+```
+
+The mock input publisher remains a separate test helper and can still be run with `python3 mock_fleet_inputs.py` from the repository root. The monitor entry point does not add a velocity, state, or hardware-command publisher. It only subscribes to SDK status and pose inputs and publishes the diagnostic fleet report.
+
 ## Two-robot mock monitor test
 
 This software-only test publishes two fabricated SDK identities and two fabricated poses. It does not connect to physical robots.
