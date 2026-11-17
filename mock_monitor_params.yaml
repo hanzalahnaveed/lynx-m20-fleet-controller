@@ -1,0 +1,5 @@
+/m20_fleet_monitor:
+  ros__parameters:
+    robot_name_map: '{"MOCK_M20_A": "robot_a"}'
+    robot_a_pose_topic: /robot_a/pose
+    robot_b_pose_topic: /robot_b/pose
