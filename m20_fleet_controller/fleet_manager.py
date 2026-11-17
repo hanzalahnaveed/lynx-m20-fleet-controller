@@ -123,6 +123,26 @@ class FleetManager:
         robot.last_command = VelocityCommand()
         robot.target = None
 
+    def preview_calculate(self, robot_id, now=None):
+        """Calculate a dry-run candidate without enabling or storing motion."""
+        robot = self._get_robot(robot_id)
+
+        if now is None:
+            now = time.monotonic()
+
+        pose = self.localization.get_pose(robot_id, now)
+        if (
+            not self.status_is_fresh(robot_id, now)
+            or pose is None
+            or robot.target is None
+            or robot.safety_mode != 0
+        ):
+            return VelocityCommand()
+
+        # This is a local calculation only. It does not change the safety
+        # gate, last_command, or publish any ROS or hardware message.
+        return self.controller.calculate(pose, robot.target, now)
+
     def calculate(self, robot_id, now=None):
         robot = self._get_robot(robot_id)
 
