@@ -110,13 +110,10 @@ Source ROS and the SDK overlay first:
 source /opt/ros/humble/setup.bash
 source ~/lynx_ws/src/sdk_deploy/install/setup.bash
 cd ~/lynx_ws/fleet_controller
-for test in test_*.py; do
-  echo "===== $test ====="
-  python3 "$test" || exit 1
-done
+bash run_software_tests.sh
 ```
 
-Tests use fabricated inputs. They do not connect to physical robots. The fail-closed regression test is `test_fail_closed_safety.py`.
+The script sources ROS 2 Humble and the SDK overlay, then runs every `test_*.py` script and stops on the first failure. Tests use fabricated inputs. They do not connect to physical robots.
 
 ## Safety boundaries and known SDK hazards
 
