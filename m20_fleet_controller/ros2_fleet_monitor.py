@@ -87,7 +87,11 @@ class FleetMonitor(Node):
             RobotStatus, "/rl_deploy/status", self.status_callback, 10
         )
         self.report_publisher = self.create_publisher(String, "~/fleet_status", 10)
-        self.target_publishers = {\n            "robot_a": self.create_publisher(Point, "/m20_fleet_monitor/robot_a_target", 10),\n            "robot_b": self.create_publisher(Point, "/m20_fleet_monitor/robot_b_target", 10),\n        }\n        self.timer = self.create_timer(0.1, self.publish_report)
+        self.target_publishers = {
+            "robot_a": self.create_publisher(Point, "/m20_fleet_monitor/robot_a_target", 10),
+            "robot_b": self.create_publisher(Point, "/m20_fleet_monitor/robot_b_target", 10),
+        }
+        self.timer = self.create_timer(0.1, self.publish_report)
         self.dashboard = DashboardServer(
             report_provider=lambda: build_fleet_report(self.fleet),
             target_setter=self.set_target_from_dashboard,
