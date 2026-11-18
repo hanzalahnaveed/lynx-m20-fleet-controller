@@ -97,7 +97,7 @@ class MockFleetInputs(Node):
         x = center_x + self.radius * math.cos(angle)
         y = center_y + 0.65 * self.radius * math.sin(angle)
         yaw = math.atan2(
-            -0.65 * self.radius * omega * math.cos(angle),
+            0.65 * self.radius * omega * math.cos(angle),
             -self.radius * omega * math.sin(angle),
         )
         return x, y, yaw
