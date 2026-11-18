@@ -9,7 +9,7 @@
 main{max-width:1160px;margin:0 auto;padding:30px 24px 48px}.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px}.kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--sage);font-weight:750}h1{font-size:clamp(27px,4vw,36px);letter-spacing:-.04em;line-height:1.1;margin:7px 0}.sub{color:var(--muted);margin:0;font-size:14px}.readonly{font-size:11px;letter-spacing:.08em;color:#627a68;background:#e8eee7;border:1px solid #d8e2d7;padding:7px 11px;border-radius:99px;white-space:nowrap}
 .map-card,.robot{background:var(--surface);border:1px solid var(--line);border-radius:18px}.map-head{display:flex;justify-content:space-between;align-items:center;padding:17px 20px 12px;gap:12px}.map-title{font-size:15px;font-weight:700}.map-sub{font-size:12px;color:var(--muted)}.live{display:flex;align-items:center;gap:7px;color:var(--sage);font-size:12px;font-weight:650}.dot{width:7px;height:7px;background:#72a57c;border-radius:50%;box-shadow:0 0 0 4px #eaf1e9}.map-wrap{position:relative;padding:0 12px 10px}.map-svg{width:100%;height:auto;display:block;min-height:260px}.map-empty{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);pointer-events:none}.legend{display:flex;flex-wrap:wrap;gap:18px;padding:11px 20px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:7px}.swatch{width:9px;height:9px;border-radius:50%;display:inline-block}.line-swatch{width:20px;border-top:2px solid #aeb9ad}
 .robots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:15px}.robot{padding:17px 18px}.robot-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.robot h2{font-size:16px;margin:0}.state{font-size:11px;color:var(--muted);background:#f0f1eb;border-radius:99px;padding:5px 9px;text-transform:capitalize}.state.good{color:#54785e;background:#e9f1e9}.state.warn{color:#986e3f;background:#f6eee1}.state.bad{color:#a4564d;background:#f6eae7}
-.details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.detail label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.detail b{font-size:13px;font-weight:650;display:block;margin-top:2px;overflow-wrap:anywhere}.detail small{font-size:11px;color:var(--muted)}
+.target-form{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}.target-form label{display:grid;gap:4px;color:var(--muted);font-size:10px;text-transform:uppercase}.target-form input{width:82px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fbfbf7;color:var(--ink)}.target-form button{padding:9px 12px;border:0;border-radius:8px;background:#638b72;color:white;cursor:pointer}.target-form button:disabled{opacity:.5}.target-msg{font-size:11px;color:var(--muted)}.details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.detail label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.detail b{font-size:13px;font-weight:650;display:block;margin-top:2px;overflow-wrap:anywhere}.detail small{font-size:11px;color:var(--muted)}
 .summary{display:flex;gap:22px;flex-wrap:wrap;padding:14px 2px 0;color:var(--muted);font-size:12px}.summary b{color:var(--ink);font-size:14px;margin-right:4px}.notice{margin-top:17px;padding:12px 15px;border-left:3px solid #c9d6c8;background:#eef1e9;color:#66746a;font-size:12px;border-radius:0 9px 9px 0}.footer{display:flex;justify-content:space-between;gap:10px;margin-top:13px;color:var(--muted);font-size:11px}.error{color:var(--red)}
 @media(max-width:720px){main{padding:22px 13px 36px}.top{display:block}.readonly{display:inline-block;margin-top:13px}.robots{grid-template-columns:1fr}.details{grid-template-columns:repeat(2,minmax(0,1fr))}.map-svg{min-height:220px}.map-head{padding:14px 14px 8px}.legend{padding-left:14px}}
 </style>
@@ -42,7 +42,7 @@ function card(id,r){
  kv("Telemetry",r.telemetry_fresh?"Fresh":"Stale / unavailable")+
  kv("Safety mode",esc(r.safety_mode))+
  kv("Preview · m/s",fmt(v.forward)+", "+fmt(v.sideways),'<small>forward · sideways</small>')+
- '</div></article>';
+ '</div><form class="target-form" onsubmit="setTarget(event,\''+id+'\')"><label>X (m)<input name="x" type="number" step="0.1" required value="'+(t?fmt(t.x):"0")+'"></label><label>Y (m)<input name="y" type="number" step="0.1" required value="'+(t?fmt(t.y):"0")+'"></label><button type="submit">Set destination</button><span class="target-msg" id="msg-'+id+'">Demo target</span></form></article>';
 }
 function niceStep(span){const raw=span/7,p=Math.pow(10,Math.floor(Math.log10(raw))),q=raw/p;return (q<1.5?1:q<3.5?2:q<7.5?5:10)*p}
 function drawMap(robots){
@@ -71,6 +71,12 @@ function drawMap(robots){
  svg.innerHTML=s;
  const n=slots.filter(id=>(robots[id]||{}).localization_fresh&&(robots[id]||{}).pose).length;
  document.getElementById("map-live").textContent=n+" / 2 positions live";
+}
+async function setTarget(event,id){
+ event.preventDefault();const form=event.currentTarget,button=form.querySelector("button"),msg=document.getElementById("msg-"+id);
+ button.disabled=true;msg.textContent="Updating…";
+ try{const res=await fetch("/api/target",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({robot:id,x:Number(form.elements.x.value),y:Number(form.elements.y.value)})});const data=await res.json();if(!res.ok)throw new Error(data.error||"Request failed");msg.textContent="Destination updated";}
+ catch(e){msg.textContent="Could not update: "+e.message;}finally{button.disabled=false}
 }
 async function refresh(){
  try{
