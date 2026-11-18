@@ -2,64 +2,88 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lynx M20 Fleet</title>
+<title>Lynx Fleet · Live map</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1018;--panel:#121b28;--line:#263548;--muted:#91a1b5;--text:#edf3fa;--green:#55d6a0;--amber:#f2bd62;--red:#ff7777;--blue:#7db7ff}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% 0%,#17283b 0,transparent 45%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
-main{max-width:1180px;margin:auto;padding:34px 24px 56px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:28px}.eyebrow{color:var(--blue);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}h1{font-size:clamp(28px,4vw,42px);line-height:1.1;margin:8px 0}.sub{color:var(--muted);margin:0}.readonly{border:1px solid #6b512b;color:var(--amber);background:#2b2114;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
-.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}.tile,.robot{background:linear-gradient(145deg,#162232,#101824);border:1px solid var(--line);border-radius:16px}.tile{padding:16px 18px}.tile span{display:block;color:var(--muted);font-size:12px}.tile strong{display:block;font-size:23px;margin-top:3px}
-.robots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.robot{padding:20px}.robot-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.robot h2{font-size:20px;margin:0}.state{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:#253449;color:var(--muted)}.state.good{background:#12372c;color:var(--green)}.state.warn{background:#3a2d18;color:var(--amber)}.state.bad{background:#3b2025;color:var(--red)}
-.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.metric{border-top:1px solid var(--line);padding-top:10px;min-width:0}.metric label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:14px;font-weight:650;margin-top:3px;overflow-wrap:anywhere}.metric small{color:var(--muted)}.vector{font-variant-numeric:tabular-nums}
-.footer{display:flex;justify-content:space-between;gap:14px;color:var(--muted);font-size:12px;margin-top:18px}.notice{border:1px solid var(--line);border-radius:12px;padding:13px 16px;color:var(--muted);margin-top:18px;font-size:13px}.error{color:var(--red)}
-@media(max-width:720px){main{padding:24px 14px}.top{display:block}.readonly{display:inline-block;margin-top:16px}.summary{grid-template-columns:1fr}.robots{grid-template-columns:1fr}}
-</style></head>
+:root{color-scheme:light;--paper:#f5f4ee;--surface:#fffefa;--ink:#26352f;--muted:#78847c;--line:#e4e5dc;--sage:#638b72;--orange:#d28b51;--soft:#edf0e8;--red:#b85d51}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
+main{max-width:1160px;margin:0 auto;padding:30px 24px 48px}.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px}.kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--sage);font-weight:750}h1{font-size:clamp(27px,4vw,36px);letter-spacing:-.04em;line-height:1.1;margin:7px 0}.sub{color:var(--muted);margin:0;font-size:14px}.readonly{font-size:11px;letter-spacing:.08em;color:#627a68;background:#e8eee7;border:1px solid #d8e2d7;padding:7px 11px;border-radius:99px;white-space:nowrap}
+.map-card,.robot{background:var(--surface);border:1px solid var(--line);border-radius:18px}.map-head{display:flex;justify-content:space-between;align-items:center;padding:17px 20px 12px;gap:12px}.map-title{font-size:15px;font-weight:700}.map-sub{font-size:12px;color:var(--muted)}.live{display:flex;align-items:center;gap:7px;color:var(--sage);font-size:12px;font-weight:650}.dot{width:7px;height:7px;background:#72a57c;border-radius:50%;box-shadow:0 0 0 4px #eaf1e9}.map-wrap{position:relative;padding:0 12px 10px}.map-svg{width:100%;height:auto;display:block;min-height:260px}.map-empty{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);pointer-events:none}.legend{display:flex;flex-wrap:wrap;gap:18px;padding:11px 20px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:7px}.swatch{width:9px;height:9px;border-radius:50%;display:inline-block}.line-swatch{width:20px;border-top:2px solid #aeb9ad}
+.robots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:15px}.robot{padding:17px 18px}.robot-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.robot h2{font-size:16px;margin:0}.state{font-size:11px;color:var(--muted);background:#f0f1eb;border-radius:99px;padding:5px 9px;text-transform:capitalize}.state.good{color:#54785e;background:#e9f1e9}.state.warn{color:#986e3f;background:#f6eee1}.state.bad{color:#a4564d;background:#f6eae7}
+.details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.detail label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.detail b{font-size:13px;font-weight:650;display:block;margin-top:2px;overflow-wrap:anywhere}.detail small{font-size:11px;color:var(--muted)}
+.summary{display:flex;gap:22px;flex-wrap:wrap;padding:14px 2px 0;color:var(--muted);font-size:12px}.summary b{color:var(--ink);font-size:14px;margin-right:4px}.notice{margin-top:17px;padding:12px 15px;border-left:3px solid #c9d6c8;background:#eef1e9;color:#66746a;font-size:12px;border-radius:0 9px 9px 0}.footer{display:flex;justify-content:space-between;gap:10px;margin-top:13px;color:var(--muted);font-size:11px}.error{color:var(--red)}
+@media(max-width:720px){main{padding:22px 13px 36px}.top{display:block}.readonly{display:inline-block;margin-top:13px}.robots{grid-template-columns:1fr}.details{grid-template-columns:repeat(2,minmax(0,1fr))}.map-svg{min-height:220px}.map-head{padding:14px 14px 8px}.legend{padding-left:14px}}
+</style>
+</head>
 <body><main>
-<header class="top"><div><div class="eyebrow">DEEP Robotics · M20 Pro</div><h1>Fleet overview</h1><p class="sub">Two-slot host monitor · live diagnostics and dry-run previews</p></div><div class="readonly">READ-ONLY · NO MOTION COMMANDS</div></header>
-<section class="summary">
-<div class="tile"><span>Robot slots reporting</span><strong id="reporting">0 / 2</strong></div>
-<div class="tile"><span>Fresh telemetry</span><strong id="telemetry">0 / 2</strong></div>
-<div class="tile"><span>Software motion gates enabled</span><strong id="enabled">0 / 2</strong></div>
+<header class="top"><div><div class="kicker">DEEP Robotics · M20 Pro</div><h1>Fleet map</h1><p class="sub">Live positions in the shared local coordinate frame</p></div><div class="readonly">READ ONLY · NO ROBOT CONTROL</div></header>
+<section class="map-card">
+ <div class="map-head"><div><div class="map-title">Live movement</div><div class="map-sub">Position, heading, target and recent path</div></div><div class="live"><i class="dot"></i><span id="map-live">Waiting for localization</span></div></div>
+ <div class="map-wrap"><svg id="map" class="map-svg" viewBox="0 0 900 480" role="img" aria-label="Live two-dimensional robot position map"></svg><div id="map-empty" class="map-empty">Waiting for fresh robot positions…</div></div>
+ <div class="legend"><span><i class="swatch" style="background:#638b72"></i>Robot A</span><span><i class="swatch" style="background:#d28b51"></i>Robot B</span><span><i class="line-swatch"></i>Recent path</span><span>◎ Target point</span></div>
 </section>
+<div class="summary"><span><b id="reporting">0 / 2</b> status fresh</span><span><b id="telemetry">0 / 2</b> telemetry fresh</span><span><b id="localization">0 / 2</b> positions fresh</span></div>
 <section class="robots" id="robots"></section>
-<div class="notice">Preview velocities are calculated locally and are never published to the robot. “Observing” is a monitoring state, not a physical safety certification. A zero preview is not an emergency stop.</div>
-<div class="footer"><span id="connection">Connecting to local monitor…</span><span id="updated">Waiting for first report</span></div>
+<div class="notice">The map uses incoming PoseStamped coordinates (metres) and yaw in the shared world frame. It is not a GPS, satellite or building map. Trails are retained in this browser session. Preview velocities are diagnostic only and are never sent to either robot. A zero preview is not an emergency stop.</div>
+<div class="footer"><span id="connection">Connecting to local ROS 2 monitor…</span><span id="updated">Waiting for data</span></div>
 </main>
 <script>
 const slots=["robot_a","robot_b"];
-const fmt=(v,n=2)=>v===null||v===undefined?"—":Number(v).toFixed(n);
+const palette={robot_a:"#638b72",robot_b:"#d28b51"};
+const trails={robot_a:[],robot_b:[]};
+const fmt=(v,n=2)=>v===null||v===undefined||!Number.isFinite(Number(v))?"—":Number(v).toFixed(n);
 const esc=s=>String(s??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function card(id,r){
- const state=r.monitor_state||"unknown";
- const cls=state==="observing"?"good":(["awaiting_status","status_stale","telemetry_stale","safety_mode_active"].includes(state)?"warn":"bad");
- const p=r.pose,t=r.target,v=r.preview_velocity||{};
- const kv=(label,value,extra="")=>'<div class="metric"><label>'+label+'</label><b>'+value+'</b>'+extra+'</div>';
- return '<article class="robot"><div class="robot-head"><h2>'+id.replace("_"," ").toUpperCase()+'</h2><span class="state '+cls+'">'+esc(state.replaceAll("_"," "))+'</span></div><div class="metrics">'+
- kv("SDK status",r.status_fresh?"Fresh":(r.status_received?"Stale":"Not received"))+
- kv("Telemetry",r.telemetry_fresh?"Fresh":"Stale / unavailable")+
- kv("Localization",r.localization_fresh?"Fresh":"Unavailable")+
- kv("Current state",esc(r.current_state))+
- kv("Safety mode",esc(r.safety_mode))+
- kv("Software motion gate",r.motion_enabled_in_software?"Enabled":"Disabled")+
+ const state=r.monitor_state||"unknown",cls=state==="observing"?"good":(["awaiting_status","status_stale","telemetry_stale","safety_mode_active"].includes(state)?"warn":"bad");
+ const p=r.pose,t=r.target,v=r.preview_velocity||{},kv=(label,value,extra="")=>'<div class="detail"><label>'+label+'</label><b>'+value+'</b>'+extra+'</div>';
+ return '<article class="robot"><div class="robot-head"><h2>'+id.replace("_"," ").toUpperCase()+'</h2><span class="state '+cls+'">'+esc(state.replaceAll("_"," "))+'</span></div><div class="details">'+
  kv("Pose · metres",p?fmt(p.x)+", "+fmt(p.y):"—",p?'<small>yaw '+fmt(p.yaw)+' rad</small>':'')+
  kv("Target · metres",t?fmt(t.x)+", "+fmt(t.y):"—")+
+ kv("SDK state",esc(r.current_state))+
+ kv("Telemetry",r.telemetry_fresh?"Fresh":"Stale / unavailable")+
+ kv("Safety mode",esc(r.safety_mode))+
  kv("Preview · m/s",fmt(v.forward)+", "+fmt(v.sideways),'<small>forward · sideways</small>')+
- kv("Preview yaw · rad/s",fmt(v.yaw_rate))+
- kv("Rejected commands",esc(r.rejected_commands))+
  '</div></article>';
+}
+function niceStep(span){const raw=span/7,p=Math.pow(10,Math.floor(Math.log10(raw))),q=raw/p;return (q<1.5?1:q<3.5?2:q<7.5?5:10)*p}
+function drawMap(robots){
+ const svg=document.getElementById("map"),W=900,H=480,pad=66;
+ const points=[];
+ slots.forEach(id=>{const r=robots[id]||{};if(r.localization_fresh&&r.pose)points.push([Number(r.pose.x),Number(r.pose.y)]);if(r.target)points.push([Number(r.target.x),Number(r.target.y)]);trails[id].forEach(p=>points.push(p))});
+ const valid=points.filter(p=>p.every(Number.isFinite));
+ if(!valid.length){svg.innerHTML='<rect x="0" y="0" width="900" height="480" rx="12" fill="#f8f8f3"/>';document.getElementById("map-empty").style.display="flex";document.getElementById("map-live").textContent="Waiting for localization";return}
+ document.getElementById("map-empty").style.display="none";
+ let minX=Math.min(...valid.map(p=>p[0])),maxX=Math.max(...valid.map(p=>p[0])),minY=Math.min(...valid.map(p=>p[1])),maxY=Math.max(...valid.map(p=>p[1]));
+ let cx=(minX+maxX)/2,cy=(minY+maxY)/2,span=Math.max(maxX-minX,maxY-minY,6)*1.35;
+ const scale=Math.min((W-2*pad)/span,(H-2*pad)/span),mx=x=>W/2+(x-cx)*scale,my=y=>H/2-(y-cy)*scale;
+ const step=niceStep(span),left=cx-span/2,right=cx+span/2,bottom=cy-span/2,top=cy+span/2;
+ let s='<rect width="900" height="480" rx="12" fill="#f8f8f3"/>';
+ for(let x=Math.floor(left/step)*step;x<=right+step/2;x+=step){const X=mx(x);s+='<line x1="'+X+'" y1="18" x2="'+X+'" y2="462" stroke="#e8e9e1" stroke-width="1"/><text x="'+X+'" y="466" text-anchor="middle" fill="#879187" font-size="10">'+fmt(x,1)+'</text>'}
+ for(let y=Math.floor(bottom/step)*step;y<=top+step/2;y+=step){const Y=my(y);s+='<line x1="22" y1="'+Y+'" x2="878" y2="'+Y+'" stroke="#e8e9e1" stroke-width="1"/><text x="30" y="'+(Y-5)+'" fill="#879187" font-size="10">'+fmt(y,1)+'</text>'}
+ s+='<text x="870" y="455" text-anchor="end" fill="#879187" font-size="10">X · metres</text><text x="36" y="22" fill="#879187" font-size="10">Y · metres</text>';
+ slots.forEach(id=>{
+  const r=robots[id]||{},color=palette[id],path=trails[id];
+  if(path.length>1)s+='<polyline points="'+path.map(p=>mx(p[0])+","+my(p[1])).join(" ")+'" fill="none" stroke="'+color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".42"/>';
+  if(r.target&&Number.isFinite(Number(r.target.x))&&Number.isFinite(Number(r.target.y))){const x=mx(Number(r.target.x)),y=my(Number(r.target.y));s+='<circle cx="'+x+'" cy="'+y+'" r="12" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-dasharray="3 3" opacity=".8"/><path d="M '+(x-5)+' '+y+' h 10 M '+x+' '+(y-5)+' v 10" stroke="'+color+'" stroke-width="1.5"/>'}
+  if(r.localization_fresh&&r.pose){const x=mx(Number(r.pose.x)),y=my(Number(r.pose.y)),yaw=Number(r.pose.yaw)||0,dx=Math.cos(yaw)*23,dy=-Math.sin(yaw)*23;
+   s+='<circle cx="'+x+'" cy="'+y+'" r="18" fill="'+color+'" opacity=".12"/><circle cx="'+x+'" cy="'+y+'" r="10" fill="'+color+'" stroke="#fffefa" stroke-width="3"/><path d="M '+x+' '+y+' L '+(x+dx)+' '+(y+dy)+'" stroke="'+color+'" stroke-width="4" stroke-linecap="round"/><text x="'+(x+16)+'" y="'+(y-16)+'" fill="'+color+'" font-size="12" font-weight="700">'+(id==="robot_a"?"A":"B")+'</text>';
+  }
+ });
+ svg.innerHTML=s;
+ const n=slots.filter(id=>(robots[id]||{}).localization_fresh&&(robots[id]||{}).pose).length;
+ document.getElementById("map-live").textContent=n+" / 2 positions live";
 }
 async function refresh(){
  try{
-  const res=await fetch("/api/status",{cache:"no-store"});
-  if(!res.ok)throw new Error("HTTP "+res.status);
+  const res=await fetch("/api/status",{cache:"no-store"});if(!res.ok)throw new Error("HTTP "+res.status);
   const data=await res.json(),robots=data.robots||{};
-  document.getElementById("robots").innerHTML=slots.map(id=>card(id,robots[id]||{})).join("");
+  slots.forEach(id=>{const r=robots[id]||{};if(r.localization_fresh&&r.pose){const p=[Number(r.pose.x),Number(r.pose.y)];if(p.every(Number.isFinite)){const a=trails[id],last=a[a.length-1];if(!last||Math.hypot(last[0]-p[0],last[1]-p[1])>.015){a.push(p);if(a.length>500)a.shift()}}}});
+  drawMap(robots);document.getElementById("robots").innerHTML=slots.map(id=>card(id,robots[id]||{})).join("");
   document.getElementById("reporting").textContent=slots.filter(id=>robots[id]?.status_fresh).length+" / 2";
   document.getElementById("telemetry").textContent=slots.filter(id=>robots[id]?.telemetry_fresh).length+" / 2";
-  document.getElementById("enabled").textContent=slots.filter(id=>robots[id]?.motion_enabled_in_software).length+" / 2";
-  document.getElementById("connection").textContent="Connected to ROS 2 monitor";
-  document.getElementById("connection").className="";
+  document.getElementById("localization").textContent=slots.filter(id=>robots[id]?.localization_fresh).length+" / 2";
+  document.getElementById("connection").textContent="Connected to ROS 2 monitor";document.getElementById("connection").className="";
   document.getElementById("updated").textContent="Updated "+new Date().toLocaleTimeString();
- }catch(e){document.getElementById("connection").textContent="Monitor unavailable: "+e.message;document.getElementById("connection").className="error"}
+ }catch(e){document.getElementById("connection").textContent="Monitor unavailable: "+e.message;document.getElementById("connection").className="error";document.getElementById("map-live").textContent="Monitor disconnected"}
 }
-refresh();setInterval(refresh,1000);
+refresh();setInterval(refresh,500);
 </script></body></html>
