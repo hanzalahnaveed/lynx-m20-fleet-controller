@@ -1,11 +1,12 @@
-"""Publish fabricated status and pose inputs for two-slot monitor testing.
+"""Publish fabricated, moving two-robot inputs for dashboard testing.
 
 Publishes only /rl_deploy/status, /robot_a/pose, and /robot_b/pose.
-It does not publish velocity, state, or hardware joint commands.
+It never publishes velocity, state, or hardware joint commands.
 
-Set publish_robot_b_pose:=false to simulate loss of robot B localization
-while both fabricated SDK status streams and robot A localization continue.
+Set animate_poses:=false for stationary test positions, or
+publish_robot_b_pose:=false to simulate loss of Robot B localization.
 """
+import math
 
 import rclpy
 from rclpy.node import Node
@@ -17,24 +18,30 @@ class MockFleetInputs(Node):
     def __init__(self):
         super().__init__("mock_fleet_inputs")
         self.declare_parameter("publish_robot_b_pose", True)
-        self.publish_robot_b_pose = (
+        self.declare_parameter("animate_poses", True)
+        self.declare_parameter("trajectory_radius", 1.0)
+        self.declare_parameter("trajectory_period", 24.0)
+        self.publish_robot_b_pose = bool(
             self.get_parameter("publish_robot_b_pose").value
         )
-        self.status_pub = self.create_publisher(
-            RobotStatus, "/rl_deploy/status", 10
-        )
-        self.pose_a_pub = self.create_publisher(
-            PoseStamped, "/robot_a/pose", 10
-        )
-        self.pose_b_pub = self.create_publisher(
-            PoseStamped, "/robot_b/pose", 10
-        )
+        self.animate_poses = bool(self.get_parameter("animate_poses").value)
+        self.radius = float(self.get_parameter("trajectory_radius").value)
+        self.period = float(self.get_parameter("trajectory_period").value)
+        if not math.isfinite(self.radius) or self.radius <= 0.05:
+            raise ValueError("trajectory_radius must be finite and greater than 0.05")
+        if not math.isfinite(self.period) or self.period < 2.0:
+            raise ValueError("trajectory_period must be finite and at least 2 seconds")
+        self.started_at = self.get_clock().now().nanoseconds / 1e9
+
+        self.status_pub = self.create_publisher(RobotStatus, "/rl_deploy/status", 10)
+        self.pose_a_pub = self.create_publisher(PoseStamped, "/robot_a/pose", 10)
+        self.pose_b_pub = self.create_publisher(PoseStamped, "/robot_b/pose", 10)
         self.timer = self.create_timer(0.1, self.publish_inputs)
         self.get_logger().warning(
-            "Publishing FABRICATED two-robot status data and robot A pose. "
-            f"Robot B pose publishing is {self.publish_robot_b_pose}. "
-            "Only /rl_deploy/status, /robot_a/pose, and optionally "
-            "/robot_b/pose are used; no robot command topics are used."
+            "Publishing FABRICATED two-robot data. Animated poses: "
+            f"{self.animate_poses}; Robot B pose: {self.publish_robot_b_pose}. "
+            "Only /rl_deploy/status and pose topics are used; no robot command "
+            "topics are published."
         )
 
     def make_status(self, identity, stamp, seconds):
@@ -69,34 +76,46 @@ class MockFleetInputs(Node):
         return status
 
     @staticmethod
-    def make_pose(stamp, x, y):
+    def make_pose(stamp, x, y, yaw):
         pose = PoseStamped()
         pose.header.stamp = stamp
         pose.header.frame_id = "map"
-        pose.pose.position.x = x
-        pose.pose.position.y = y
+        pose.pose.position.x = float(x)
+        pose.pose.position.y = float(y)
         pose.pose.position.z = 0.0
         pose.pose.orientation.x = 0.0
         pose.pose.orientation.y = 0.0
-        pose.pose.orientation.z = 0.0
-        pose.pose.orientation.w = 1.0
+        pose.pose.orientation.z = math.sin(yaw / 2.0)
+        pose.pose.orientation.w = math.cos(yaw / 2.0)
         return pose
+
+    def pose_for_robot(self, elapsed, phase, center_x, center_y):
+        if not self.animate_poses:
+            return center_x, center_y, 0.0
+        omega = 2.0 * math.pi / self.period
+        angle = omega * elapsed + phase
+        x = center_x + self.radius * math.cos(angle)
+        y = center_y + 0.65 * self.radius * math.sin(angle)
+        yaw = math.atan2(
+            -0.65 * self.radius * omega * math.cos(angle),
+            -self.radius * omega * math.sin(angle),
+        )
+        return x, y, yaw
 
     def publish_inputs(self):
         now = self.get_clock().now()
         stamp = now.to_msg()
         seconds = now.nanoseconds / 1_000_000_000.0
+        elapsed = seconds - self.started_at
 
-        self.status_pub.publish(
-            self.make_status("MOCK_M20_A", stamp, seconds)
-        )
-        self.status_pub.publish(
-            self.make_status("MOCK_M20_B", stamp, seconds)
-        )
+        self.status_pub.publish(self.make_status("MOCK_M20_A", stamp, seconds))
+        self.status_pub.publish(self.make_status("MOCK_M20_B", stamp, seconds))
 
-        self.pose_a_pub.publish(self.make_pose(stamp, 1.0, 2.0))
+        a = self.pose_for_robot(elapsed, 0.0, 1.0, 2.0)
+        b = self.pose_for_robot(elapsed, math.pi, 4.0, 5.0)
+        self.pose_a_pub.publish(self.make_pose(stamp, *a))
         if self.publish_robot_b_pose:
-            self.pose_b_pub.publish(self.make_pose(stamp, 4.0, 5.0))
+            self.pose_b_pub.publish(self.make_pose(stamp, *b))
 
 
 def main():
@@ -108,7 +127,8 @@ def main():
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
