@@ -80,6 +80,18 @@ cd ~/lynx_ws/fleet_controller
 python3 mock_fleet_inputs.py
 ```
 
+The default mock mode animates both fabricated robot poses on separate elliptical paths so the browser map can be checked for moving markers, heading updates, and trails. To keep the poses stationary, use:
+
+```bash
+python3 mock_fleet_inputs.py --ros-args -p animate_poses:=false
+```
+
+To simulate loss of Robot B localization while Robot A continues moving:
+
+```bash
+python3 mock_fleet_inputs.py --ros-args -p publish_robot_b_pose:=false
+```
+
 Terminal 3 — read one report:
 
 ```bash
