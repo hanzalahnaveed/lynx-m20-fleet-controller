@@ -10,6 +10,7 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from drdds.msg import RobotStatus
 from std_msgs.msg import String
+from geometry_msgs.msg import Point
 
 from .controller_core import Target
 from .fleet_manager import FleetManager
@@ -86,9 +87,10 @@ class FleetMonitor(Node):
             RobotStatus, "/rl_deploy/status", self.status_callback, 10
         )
         self.report_publisher = self.create_publisher(String, "~/fleet_status", 10)
-        self.timer = self.create_timer(0.1, self.publish_report)
+        self.target_publishers = {\n            "robot_a": self.create_publisher(Point, "/m20_fleet_monitor/robot_a_target", 10),\n            "robot_b": self.create_publisher(Point, "/m20_fleet_monitor/robot_b_target", 10),\n        }\n        self.timer = self.create_timer(0.1, self.publish_report)
         self.dashboard = DashboardServer(
             report_provider=lambda: build_fleet_report(self.fleet),
+            target_setter=self.set_target_from_dashboard,
             host=str(self.get_parameter("dashboard_host").value),
             port=int(self.get_parameter("dashboard_port").value),
             web_dir=get_package_share_directory("m20_fleet_controller") + "/web",
@@ -107,6 +109,10 @@ class FleetMonitor(Node):
                 "robot_name_map is empty; all SDK status messages will be ignored."
             )
 
+    def set_target_from_dashboard(self, robot_id, x, y):
+        self.fleet.set_target(robot_id, Target(x, y))
+        self.get_logger().info(f"Updated {robot_id} demo target to ({x:.2f}, {y:.2f}) m")
+
     def status_callback(self, msg):
         robot_id = self.robot_name_map.get(msg.robot)
         if robot_id is None:
@@ -120,6 +126,12 @@ class FleetMonitor(Node):
         message = String()
         message.data = json.dumps(build_fleet_report(self.fleet), sort_keys=True)
         self.report_publisher.publish(message)
+        for robot_id, publisher in self.target_publishers.items():
+            target = self.fleet.robots[robot_id].target
+            if target is not None:
+                point = Point()
+                point.x, point.y = target.x, target.y
+                publisher.publish(point)
 
 
 def main(args=None):
